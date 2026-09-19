@@ -1,0 +1,15 @@
+{
+  "name": "Hanpath — Mandarin Flashcards",
+  "short_name": "Hanpath",
+  "description": "Learn Mandarin with spaced repetition: 5,000 HSK words, 16 domain packs, audio, offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f2ec",
+  "theme_color": "#b3402a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
