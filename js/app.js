@@ -269,6 +269,7 @@ async function renderHome() {
 
   app.innerHTML = `
     <div class="topbar"><h1>Hanpath</h1>
+      <button class="iconbtn" data-go="help" title="How to use">❓</button>
       <button class="langtoggle" id="langtoggle" title="Switch language">${L === "yue" ? "粤" : "中"}</button>
       <button class="iconbtn" data-go="mydecks" title="My decks">📚</button>
       <button class="iconbtn" data-go="search" title="Search">🔍</button>
@@ -899,72 +900,51 @@ async function renderHidden() {
   });
 }
 
-/* ---------------- intro (first run) ---------------- */
-let introStep = 0;
-function renderIntro() {
+/* ---------------- help / how to use ---------------- */
+function renderHelp() {
   const L = lang();
-  const steps = [
-    {
-      emoji: "👋", title: "Welcome to Hanpath",
-      html: `<p class="intro-p">Flashcards for <b>普通话 Mandarin</b> and <b>廣東話 Cantonese</b> — one app, two languages, switchable any time with the 中/粵 button.</p>
-        <ul class="intro-list">
-          <li>Study a little every day — new cards are capped daily, hard cards come back sooner, easy ones wait longer</li>
-          <li>Reach <b>${SRS.UNLOCK_PCT}% mastery</b> on a level to unlock the next</li>
-          <li>Everything stays on your device — export backups in Settings</li>
-        </ul>`,
-    },
-    {
-      emoji: "🗣️", title: "Tones carry meaning",
-      html: `<p class="intro-p">The same syllable means different things depending on the tone. Tap to hear — same sound, four meanings:</p>
-        <div class="tones">${[["妈", "mā", 1], ["麻", "má", 2], ["马", "mǎ", 3], ["骂", "mà", 4]].map(([h, p, t]) => `
-          <div class="tone"><span class="hz">${h}</span><span class="py">${p}</span><span class="tn">tone ${t}</span>${speakBtn(h)}</div>`).join("")}</div>
-        <p class="intro-p" style="margin-top:12px">There's a full crash course for both — pinyin and jyutping — one tap away:</p>`,
-      extra: `<div class="row"><button class="btn primary" data-go="learn">Crash course →</button></div>`,
-    },
-    {
-      emoji: "📲", title: "Put it on your phone",
-      html: `<p class="intro-p">Hanpath installs like a real app — home-screen icon, full screen, works offline.</p>
-        <ul class="intro-list">
-          <li><b>iPhone:</b> open in <b>Safari</b> → Share □↑ → Add to Home Screen</li>
-          <li><b>Android:</b> Chrome → ⋮ → Install app</li>
-          <li><b>Mac/PC:</b> the install icon in Chrome's address bar</li>
-        </ul>
-        <p class="faint" style="margin-top:10px">Full walkthrough lives in Settings → “Install on your phone”.</p>`,
-    },
-    {
-      emoji: "🎯", title: "Ready?",
-      html: `<p class="intro-p">Start small. ${L === "yue" ? "廣東話 Basics is open now." : "HSK 1 is open now."} Ten minutes a day beats a weekend binge — that's what the streak is for. 加油!</p>`,
-      final: true,
-    },
-  ];
-  const s = steps[Math.min(introStep, steps.length - 1)];
+  const toneCopy = L === "yue"
+    ? "Jyutping marks tones with numbers 1–6 after the syllable. Same syllable, six words — tap to hear:"
+    : "Pinyin marks tones on the vowel. Same syllable, four words — tap to hear:";
   app.innerHTML = `
-    <div class="topbar"><span style="width:38px"></span><h1></h1>
-      <button class="btn ghost" id="skipp" style="padding:8px 14px;font-size:14px">Skip</button></div>
-    <div class="quiz-card intro">
-      <div style="font-size:44px">${s.emoji}</div>
-      <h2 class="intro-title">${s.title}</h2>
-      ${s.html}
-      ${s.extra || ""}
+    ${topbar("How to use")}
+    <div class="card">
+      <div class="section-title" style="margin-top:0">The loop</div>
+      <ul class="help-list">
+        <li><b>Study</b> a deck — tap the card to flip, then grade yourself: <b>Again</b> brings it back in 10 minutes, <b>Good</b> schedules it days ahead, <b>Easy</b> even further</li>
+        <li>New cards are capped daily (${store.settings.dailyNew} by default — Settings), so reviews stay manageable</li>
+        <li>Reach <b>${SRS.UNLOCK_PCT}% mastery</b> on a level and the next one opens</li>
+        <li>Keep a <b>streak</b> 🔥 — a little every day is how spaced repetition works</li>
+        <li>Everything lives in this browser — <b>export backups</b> from Settings now and then</li>
+      </ul>
     </div>
-    <div class="intro-foot">
-      <button class="btn ghost" id="iprev" style="visibility:${introStep ? "visible" : "hidden"}">‹ Back</button>
-      <div class="dots">${steps.map((_, i) => `<i class="${i === introStep ? "on" : ""}"></i>`).join("")}</div>
-      <button class="btn primary" id="inext">${s.final ? "Start studying →" : "Next ›"}</button>
-    </div>`;
-  document.getElementById("inext").onclick = () => {
-    if (introStep >= steps.length - 1) { finishIntro(); return; }
-    introStep++;
-    renderIntro();
-  };
-  document.getElementById("iprev").onclick = () => { if (introStep > 0) { introStep--; renderIntro(); } };
-  document.getElementById("skipp").onclick = finishIntro;
+    <div class="card">
+      <div class="section-title" style="margin-top:0">${L === "yue" ? "Jyutping tones · 粵語六聲" : "Pinyin tones · 普通話四聲"}</div>
+      <p class="muted">${toneCopy}</p>
+      <div class="tones">${toneRows(toneRowsFor(L))}</div>
+      <p class="faint" style="margin-top:10px">You're in ${L === "yue" ? "Cantonese" : "Mandarin"} mode — switch with the 中/粵 button and this page changes with it.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-go="learn">Full crash course →</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">On your phone</div>
+      <p class="muted">Hanpath installs like a real app — icon on the home screen, full screen, works offline.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" data-go="guide">📲 Install guide →</button>
+      </div>
+    </div>
+    <div class="row"><button class="btn primary" data-go="home">Done</button></div>`;
 }
-function finishIntro() {
-  store.settings.seen = 1;
-  save();
-  introStep = 0;
-  goHome();
+function toneRowsFor(L) {
+  return L === "yue"
+    ? [["詩", "si1", 1], ["史", "si2", 2], ["試", "si3", 3], ["時", "si4", 4], ["市", "si5", 5], ["是", "si6", 6]]
+    : [["妈", "mā", 1], ["麻", "má", 2], ["马", "mǎ", 3], ["骂", "mà", 4]];
+}
+function toneRows(rows) {
+  return rows.map(([h, r, t]) => `
+    <div class="tone"><span class="hz">${h}</span><span class="py">${r}</span><span class="tn">tone ${t}</span>
+    <button class="speak" data-speak="${esc(h)}" data-speak-lang="${lang()}" aria-label="speak">🔊</button></div>`).join("");
 }
 
 /* ---------------- pronunciation crash course ---------------- */
@@ -1101,7 +1081,7 @@ function renderSettings() {
       </div>
       <div class="row" style="margin-top:10px">
         <button class="btn" id="guidebtn">📲 Install on your phone</button>
-        <button class="btn" id="introbtn">👋 Replay intro</button>
+        <button class="btn" id="introbtn">👋 How to use the app</button>
       </div>
     </div>
     <div class="card">
@@ -1136,7 +1116,7 @@ function renderSettings() {
   document.getElementById("hiddenbtn").onclick = () => go("hidden");
   document.getElementById("learnbtn").onclick = () => go("learn");
   document.getElementById("guidebtn").onclick = () => go("guide");
-  document.getElementById("introbtn").onclick = () => { introStep = 0; go("intro"); };
+  document.getElementById("introbtn").onclick = () => go("help");
   document.getElementById("export").onclick = () => {
     const blob = new Blob([JSON.stringify(store)], { type: "application/json" });
     const a = document.createElement("a");
@@ -1198,6 +1178,7 @@ document.addEventListener("click", e => {
     else if (v === "settings") go("settings");
     else if (v === "learn") go("learn");
     else if (v === "guide") go("guide");
+    else if (v === "help") go("help");
     else if (v.startsWith("quiz:")) { const [, kind, target] = v.split(":"); startQuiz(kind, target); }
     return;
   }
@@ -1236,7 +1217,7 @@ async function render(view) {
     else if (view === "settings") renderSettings();
     else if (view === "learn") renderLearn();
     else if (view === "guide") renderGuide();
-    else if (view === "intro") renderIntro();
+    else if (view === "help") renderHelp();
   } catch (err) {
     app.innerHTML = `<div class="empty"><div class="big">😵</div>Something broke: ${esc(err.message || err)}</div>`;
     console.error(err);
@@ -1248,5 +1229,4 @@ window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); window
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
-if (store.settings.seen) goHome();
-else { nav = ["intro"]; renderIntro(); }
+goHome();

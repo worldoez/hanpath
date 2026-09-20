@@ -296,17 +296,9 @@ select, input[type="number"] {
 .histrow .g-2 { color: var(--green); font-weight: 700; }
 .histrow .g-3 { color: var(--green); font-weight: 700; }
 
-/* ---- intro / learn / guide ---- */
-.intro-title { font-size: 22px; font-weight: 800; margin: 10px 0 12px; letter-spacing: -.02em; }
-.intro-p { font-size: 15px; color: var(--ink-soft); text-align: left; }
-.intro-p b, .intro-list b { color: var(--ink); }
-.intro-list { text-align: left; margin: 10px 0 0 18px; font-size: 15px; color: var(--ink-soft); display: grid; gap: 6px; }
-.quiz-card.intro { cursor: default; min-height: 320px; justify-content: flex-start; padding-top: 30px; }
-.intro-foot { display: flex; align-items: center; gap: 10px; }
-.intro-foot .btn { flex: 1; }
-.dots { display: flex; gap: 6px; }
-.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
-.dots i.on { background: var(--accent); }
+/* ---- help / learn / guide ---- */
+.help-list { text-align: left; margin: 4px 0 0 18px; font-size: 15px; color: var(--ink-soft); display: grid; gap: 8px; }
+.help-list b { color: var(--ink); }
 .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
 .tab {
   flex: 1; padding: 10px 8px; border-radius: 12px; border: 1.5px solid var(--line);
