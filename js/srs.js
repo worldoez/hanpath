@@ -8,7 +8,7 @@ const SRS = {
 
   newCard() { return { e: 2.5, i: 0, r: 0, lp: 0, d: 0 }; },
 
-  // grade: 0 again, 1 hard, 2 good, 3 easy
+  // grade: 0 forgot, 1 hard, 2 good, 3 easy
   grade(card, g) {
     const c = { ...card };
     if (g === 0) {
@@ -16,11 +16,17 @@ const SRS = {
       c.e = Math.max(1.3, c.e - 0.2);
     } else {
       c.r += 1;
-      if (g === 1) { c.e = Math.max(1.3, c.e - 0.15); c.i = c.i === 0 ? 1 : Math.round(c.i * 1.2); }
-      if (g === 2) { c.i = c.i === 0 ? 1 : Math.round(c.i * c.e); }
-      if (g === 3) { c.e = Math.min(3.2, c.e + 0.15); c.i = c.i === 0 ? 3 : Math.round(c.i * c.e * 1.3); }
-      c.i = Math.min(c.i, 365);
-      c.d = Date.now() + c.i * this.DAY;
+      if (g === 1) {
+        c.e = Math.max(1.3, c.e - 0.15);
+        if (c.i === 0) c.d = Date.now() + 25 * 60 * 1000;   // still learning: see again in 25 min
+        else { c.i = Math.min(365, Math.round(c.i * 1.2)); c.d = Date.now() + c.i * this.DAY; }
+      }
+      if (g === 2) { c.i = c.i === 0 ? 1 : Math.round(c.i * c.e); c.d = Date.now() + c.i * this.DAY; }
+      if (g === 3) {
+        c.e = Math.min(3.2, c.e + 0.15);
+        c.i = c.i === 0 ? 4 : Math.max(Math.round(c.i * c.e) + 1, Math.round(c.i * c.e * 1.3));
+        c.d = Date.now() + c.i * this.DAY;
+      }
     }
     c.h = (c.h || []).concat([{ t: Date.now(), g }]).slice(-20);  // per-card history, last 20
     return c;

@@ -21,7 +21,7 @@ function defaultState() {
     hist: {},        // 'YYYY-MM-DD' -> {r: reviews, c: correct, n: newCards}
     decks: {},       // deckId -> {name, cards:[{cid,h,p,e}], next, created}
     hidden: {},      // cardKey -> 1
-    settings: { dailyNew: 10, sessionLen: 15, rate: 0.9, reverse: false, theme: "auto", lang: "zh", weakest: false },
+    settings: { dailyNew: 25, sessionLen: 15, rate: 0.9, reverse: false, theme: "auto", lang: "zh", weakest: false },
   };
 }
 function migrateState(raw) {
@@ -36,6 +36,7 @@ function migrateState(raw) {
   }
   s.decks = s.decks || {}; s.hidden = s.hidden || {};
   s.settings = Object.assign(defaultState().settings, s.settings || {});
+  if (s.settings.dailyNew === 10) s.settings.dailyNew = 25;  // old default — one-time bump
   return s;
 }
 let store = defaultState();
@@ -222,14 +223,16 @@ async function renderHome() {
   for (let l = 1; l <= 6; l++) {
     const unlockedL = unlockedH.includes(l);
     const words = await loadLevel(l);
+    const shown = unlockedL ? m.get(l) : (l > 1 ? (m.get(l - 1) || 0) : 0);
     decksHtml += `
       <button class="deck ${unlockedL ? "" : "locked"}" data-level="${l}">
         <div class="glyph">${LEVEL_GLYPH[l]}</div>
         <div class="info">
           <div class="name">${LEVEL_NAMES[l]} <span class="faint">· ${words.length} words</span></div>
-          <div class="bar"><i style="width:${unlockedL ? m.get(l) : 0}%"></i></div>
+          ${unlockedL ? `<div class="bar"><i style="width:${shown}%"></i></div>`
+            : `<div class="sub">🔒 unlocks at 65% mastery of ${LEVEL_NAMES[l - 1]}</div><div class="bar"><i style="width:${shown}%"></i></div>`}
         </div>
-        <div class="pct">${unlockedL ? m.get(l) + "%" : "🔒"}</div>
+        <div class="pct">${unlockedL ? shown + "%" : (l > 1 ? shown + "% 🔒" : "🔒")}</div>
       </button>`;
   }
 
@@ -240,14 +243,16 @@ async function renderHome() {
     for (let t = 1; t <= 3; t++) {
       const unlockedT1 = unlockedT.includes(t);
       const words = await loadYue(t);
+      const shown = unlockedT1 ? tm.get(t) : (t > 1 ? (tm.get(t - 1) || 0) : 0);
       tiersHtml += `
         <button class="deck gold ${unlockedT1 ? "" : "locked"}" data-tier="${t}">
           <div class="glyph">${TIER_GLYPH[t]}</div>
           <div class="info">
             <div class="name">${TIER_NAMES[t]} <span class="faint">· ${words.length} words</span></div>
-            <div class="bar"><i style="width:${unlockedT1 ? tm.get(t) : 0}%"></i></div>
+            ${unlockedT1 ? `<div class="bar"><i style="width:${shown}%"></i></div>`
+              : `<div class="sub">🔒 unlocks at 65% mastery of ${TIER_NAMES[t - 1]}</div><div class="bar"><i style="width:${shown}%"></i></div>`}
           </div>
-          <div class="pct">${unlockedT1 ? tm.get(t) + "%" : "🔒"}</div>
+          <div class="pct">${unlockedT1 ? shown + "%" : (t > 1 ? shown + "% 🔒" : "🔒")}</div>
         </button>`;
     }
   }
@@ -639,10 +644,10 @@ async function renderQuiz() {
     </div>
     <div class="grade-hint" id="gradehint" style="visibility:hidden">How well did you know it? This sets when you'll see it again.</div>
     <div class="grades" id="grades" style="visibility:hidden">
-      <button class="btn g-again" data-grade="0">Forgot<small>10 min</small></button>
-      <button class="btn g-hard" data-grade="1">Hard<small>${nextIv(card, 1)}</small></button>
-      <button class="btn g-good" data-grade="2">Good<small>${nextIv(card, 2)}</small></button>
-      <button class="btn g-easy" data-grade="3">Easy<small>${nextIv(card, 3)}</small></button>
+      <button class="btn g-again" data-grade="0">❌ Forgot<small>10 min</small></button>
+      <button class="btn g-hard" data-grade="1">😬 Hard<small>${nextIv(card, 1)}</small></button>
+      <button class="btn g-good" data-grade="2">👍 Good<small>${nextIv(card, 2)}</small></button>
+      <button class="btn g-easy" data-grade="3">⚡ Easy<small>${nextIv(card, 3)}</small></button>
     </div>` : `
     <div class="quiz-card" style="cursor:default">
       <div class="hz">${esc(e.h)}</div>
@@ -676,7 +681,11 @@ async function renderQuiz() {
 }
 function nextIv(card, g) {
   const c = SRS.grade(card, g);
-  return c.i === 0 ? "10 min" : (c.i >= 30 ? Math.round(c.i / 7) + "w" : c.i + "d");
+  if (g === 0) return "10 min";
+  if (g === 1 && card.i === 0) return "25 min";   // hard on a new card = learning step
+  if (c.i >= 30) return Math.round(c.i / 7) + "w";
+  if (c.i < 1) return Math.round(c.i * 24) + "h";
+  return c.i + "d";
 }
 function gradeFlip(g, w, isNew) {
   const key = cardKey(w);
@@ -929,7 +938,7 @@ function renderHelp() {
       <ul class="help-list">
         <li><b>Study</b> a deck — tap the card to flip, then grade yourself: <b>Forgot</b> brings it back in 10 minutes, <b>Good</b> schedules it days ahead, <b>Easy</b> even further</li>
         <li>New cards are capped daily (${store.settings.dailyNew} by default — Settings), so reviews stay manageable</li>
-        <li>Reach <b>${SRS.UNLOCK_PCT}% mastery</b> on a level and the next one opens</li>
+        <li><b>Unlock the next level</b> by reaching <b>${SRS.UNLOCK_PCT}% mastery</b> on the current one — a card is mastered once its review gap reaches ${SRS.MASTERED_DAYS} days (keep grading 👍 Good / ⚡ Easy and it gets there). Locked decks on Home show your progress toward the unlock</li>
         <li>Keep a <b>streak</b> 🔥 — a little every day is how spaced repetition works</li>
         <li>Everything lives in this browser — <b>export backups</b> from Settings now and then</li>
       </ul>

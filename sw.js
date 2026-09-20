@@ -1,6 +1,6 @@
 /* Hanpath service worker — offline cache. Bump CACHE_VERSION when you change files. */
 "use strict";
-const CACHE_VERSION = "hanpath-v6";
+const CACHE_VERSION = "hanpath-v7";
 const CORE = [
   "./", "./index.html", "./css/styles.css",
   "./js/app.js", "./js/srs.js", "./js/tts.js",
