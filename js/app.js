@@ -272,10 +272,14 @@ async function renderHome() {
 
   let domainsHtml = "";
   if (Object.keys(domainMeta.counts).length) {
-    for (const [key, counts] of Object.entries(domainMeta.counts)) {
-      const avail = Object.entries(counts).filter(([l]) => unlockedH.includes(+l));
-      const n = avail.reduce((s, [, c]) => s + c, 0);
-      if (n < 12) continue;
+    const rows = Object.entries(domainMeta.counts)
+      .map(([key, counts]) => {
+        const avail = Object.entries(counts).filter(([l]) => unlockedH.includes(+l));
+        return { key, n: avail.reduce((s, [, c]) => s + c, 0) };
+      })
+      .filter(r => r.n >= 6)
+      .sort((a, b) => b.n - a.n);
+    for (const { key, n } of rows) {
       domainsHtml += `
         <button class="deck gold" data-domain="${key}">
           <div class="glyph">${DOMAIN_GLYPH[key] || "📚"}</div>
