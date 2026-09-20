@@ -3,7 +3,7 @@
 A PWA for learning Chinese with spaced repetition. Inspired by
 [Deckr](https://deckr.wiesnermartin.com/), rebuilt from scratch: a **2-in-1
 Mandarin/Cantonese app** — 4,989 HSK 1–6 words (pinyin *and* jyutping), a
-1,200-word spoken-Cantonese deck, 16 cross-level domain packs, browser
+1,200-word spoken-Cantonese deck, 20 cross-level domain packs, browser
 text-to-speech, custom decks with CSV import, per-card editing/hiding/history.
 No build step, no framework, no backend.
 

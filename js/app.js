@@ -6,7 +6,7 @@ const LEVEL_NAMES = { 1: "HSK 1", 2: "HSK 2", 3: "HSK 3", 4: "HSK 4", 5: "HSK 5"
 const LEVEL_GLYPH = { 1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六" };
 const TIER_NAMES = { 1: "Basics · 基礎", 2: "Everyday · 日常", 3: "Wider · 進階" };
 const TIER_GLYPH = { 1: "粵一", 2: "粵二", 3: "粵三" };
-const DOMAIN_GLYPH = { food: "🍜", travel: "🧳", transport: "🚌", family: "👨‍👩‍👧", people: "🧑‍🏫", time: "🕐", numbers: "🔢", places: "🏙️", body: "🩺", weather: "🌤️", nature: "⛰️", work: "💼", money: "🛍️", tech: "💻", clothes: "👕", feelings: "💗" };
+const DOMAIN_GLYPH = { food: "🍜", travel: "🧳", transport: "🚌", family: "👨‍👩‍👧", people: "🧑‍🏫", time: "🕐", numbers: "🔢", places: "🏙️", body: "🩺", weather: "🌤️", nature: "⛰️", work: "💼", business: "📈", education: "🎓", home: "🏠", money: "🛍️", tech: "💻", sports: "⚽", clothes: "👕", feelings: "💗" };
 const KEY = "hanpath.v2";
 const DATA = {};          // hsk level -> word array (_k:"z"), lazy
 const YDATA = {};         // yue tier -> word array (_k:"y"), lazy
@@ -132,9 +132,20 @@ async function hskMastery(l, k) {
     .map(w => cardOf({ _k: k, id: w.id }));
   return SRS.pct(cards);
 }
+async function hskProgress(l, k) {
+  const words = await loadLevel(l);
+  const cards = words
+    .filter(w => !store.hidden[k + ":" + w.id])
+    .map(w => cardOf({ _k: k, id: w.id }));
+  return SRS.avg(cards);
+}
 async function tierMastery(t) {
   const words = await loadYue(t);
   return SRS.pct(levelCards(words));
+}
+async function tierProgress(t) {
+  const words = await loadYue(t);
+  return SRS.avg(levelCards(words));
 }
 async function unlockedHsk() {
   const k = lang() === "yue" ? "y" : "z";
@@ -218,12 +229,13 @@ async function renderHome() {
   const st = streak();
 
   let decksHtml = "";
-  const m = new Map();
-  for (const l of unlockedH) m.set(l, await hskMastery(l, k));
+  const m = new Map();      // mastery % — the unlock metric
+  const pm = new Map();     // smooth progress — what the bar shows
+  for (const l of unlockedH) { m.set(l, await hskMastery(l, k)); pm.set(l, await hskProgress(l, k)); }
   for (let l = 1; l <= 6; l++) {
     const unlockedL = unlockedH.includes(l);
     const words = await loadLevel(l);
-    const shown = unlockedL ? m.get(l) : (l > 1 ? (m.get(l - 1) || 0) : 0);
+    const shown = unlockedL ? pm.get(l) : (l > 1 ? (m.get(l - 1) || 0) : 0);
     decksHtml += `
       <button class="deck ${unlockedL ? "" : "locked"}" data-level="${l}">
         <div class="glyph">${LEVEL_GLYPH[l]}</div>
@@ -238,12 +250,13 @@ async function renderHome() {
 
   let tiersHtml = "";
   if (L === "yue") {
-    const tm = new Map();
-    for (const t of unlockedT) tm.set(t, await tierMastery(t));
+    const tm = new Map();     // mastery (unlock metric)
+    const tpm = new Map();    // smooth progress
+    for (const t of unlockedT) { tm.set(t, await tierMastery(t)); tpm.set(t, await tierProgress(t)); }
     for (let t = 1; t <= 3; t++) {
       const unlockedT1 = unlockedT.includes(t);
       const words = await loadYue(t);
-      const shown = unlockedT1 ? tm.get(t) : (t > 1 ? (tm.get(t - 1) || 0) : 0);
+      const shown = unlockedT1 ? tpm.get(t) : (t > 1 ? (tm.get(t - 1) || 0) : 0);
       tiersHtml += `
         <button class="deck gold ${unlockedT1 ? "" : "locked"}" data-tier="${t}">
           <div class="glyph">${TIER_GLYPH[t]}</div>
@@ -326,17 +339,20 @@ async function renderDeck(l) {
   const name = isTier ? TIER_NAMES[tier] : LEVEL_NAMES[+l];
   const cards = levelCards(words);
   const pct = SRS.pct(cards);
+  const prog = SRS.avg(cards);
   const due = cards.filter(c => SRS.isDue(c)).length;
   const mastered = cards.filter(c => SRS.isMastered(c)).length;
+  const fresh = cards.filter(c => c.r === 0).length;
+  const learning = cards.filter(c => c.r > 0 && !SRS.isMastered(c)).length;
   const nHidden = words.length - visWords(words).length;
   const SHOW = 60;
   const quizTarget = isTier ? "t" + tier : String(+l);
   app.innerHTML = `
     ${topbar(name)}
     <div class="card">
-      <div class="muted">${words.length - nHidden} words${nHidden ? ` · ${nHidden} hidden` : ""} · ${mastered} mastered · ${due} due</div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="faint" style="margin-top:6px">${pct}% mastered (interval ≥ ${SRS.MASTERED_DAYS} days)</div>
+      <div class="muted">${words.length - nHidden} words · ${fresh} new · ${learning} learning · ${mastered} mastered${due ? ` · ${due} due now` : ""}</div>
+      <div class="bar"><i style="width:${prog}%"></i></div>
+      <div class="faint" style="margin-top:6px">${prog}% progress — a card is mastered once its review gap reaches ${SRS.MASTERED_DAYS} days (${pct}% already are)</div>
       <div class="row" style="margin-top:14px">
         <button class="btn primary" data-go="quiz:flip:${quizTarget}">Study</button>
         <button class="btn" data-go="quiz:choice:${quizTarget}">Multiple choice</button>
@@ -368,7 +384,7 @@ async function renderMyDecks() {
   for (const id of deckIds) {
     const d = store.decks[id];
     const words = d.cards.map(c => deckWord(id, c)).filter(w => !isHidden(w));
-    const pct = SRS.pct(words.map(cardOf));
+    const pct = SRS.avg(words.map(cardOf));
     decksHtml += `
       <button class="deck" data-cdeck="${id}">
         <div class="glyph">📗</div>
@@ -1071,8 +1087,50 @@ function renderGuide() {
       <p class="muted">Hanpath is a <b>PWA</b> (progressive web app): the site plus a tiny bit of glue — a manifest and a service worker — lets your browser install it like an app, cache everything, and run it offline. Nothing from the App Store, nothing to download twice.</p>
       ${location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1" ? (location.protocol === "https:" ? "" : '<p class="faint" style="margin-top:8px">⚠️ You\'re on localhost — this server is this computer only. To install on a phone, deploy to GitHub Pages first (see DEPLOY.md).</p>') : '<p class="faint" style="margin-top:8px">⚠️ This page isn\'t served over https, so browsers will refuse to install it. Deploy to GitHub Pages first.</p>'}
     </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Install check</div>
+      <p class="muted">Runs the same tests Chrome does before offering "Install app" — and names the first thing that fails.</p>
+      <button class="btn block" id="diagbtn" style="margin-top:10px">🔍 Run install check</button>
+      <div id="diag" style="margin-top:6px"></div>
+    </div>
     <div class="row"><button class="btn" data-go="home">Done</button></div>`;
   app.querySelectorAll("[data-gt]").forEach(b => b.onclick = () => { guideTab = b.dataset.gt; renderGuide(); });
+  document.getElementById("diagbtn").onclick = async () => {
+    const box = document.getElementById("diag");
+    box.innerHTML = '<p class="faint">Checking…</p>';
+    const rows = await installCheck();
+    box.innerHTML = rows.map(r =>
+      `<div class="set-row"><span>${r.pass ? "✅" : "❌"} ${esc(r.label)}</span>${r.pass ? "" : `<span class="faint" style="text-align:right">${esc(r.hint)}</span>`}</div>`
+    ).join("") + (rows.every(r => r.pass)
+      ? '<p class="faint" style="margin-top:8px">All checks pass — open the ⋮ menu → <b>Install app</b>. If Chrome still offers only a shortcut, update Chrome (⋮ → Settings → About Chrome) and reload this page once more.</p>'
+      : '<p class="faint" style="margin-top:8px">Fix the ❌ item above (usually: reload this page once and re-run the check).</p>');
+  };
+}
+async function installCheck() {
+  const rows = [];
+  const ok = (pass, label, hint = "") => rows.push({ pass, label, hint });
+  ok(location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1",
+    "Served over HTTPS", "browsers only install https:// sites");
+  let man = null;
+  try {
+    man = await (await fetch("manifest.webmanifest")).json();
+    ok(true, "Manifest loads");
+    ok(!!(man.name || man.short_name), "App name set", "manifest needs name/short_name");
+    ok(man.display === "standalone", "Opens like an app (display: standalone)", 'set "display": "standalone"');
+    ok(!!man.start_url, "start_url set", 'set "start_url"');
+    const sizes = (man.icons || []).map(i => i.sizes || "");
+    ok(sizes.includes("192x192") && sizes.includes("512x512"), "Icons 192px + 512px declared", "add both icons to the manifest");
+    if (man.icons && man.icons.length) {
+      try { ok((await fetch(man.icons[0].src)).ok, "Icon file reachable", "icons/ missing from the site"); }
+      catch { ok(false, "Icon file reachable", "icons/ missing from the site"); }
+    }
+  } catch { ok(false, "Manifest loads", "manifest.webmanifest missing or invalid"); }
+  let reg = null;
+  if ("serviceWorker" in navigator) reg = await navigator.serviceWorker.getRegistration();
+  ok(!!reg, "Service worker registered", "reload this page once — it registers on load");
+  ok(!!(reg && reg.active), "Service worker active", "wait a moment, then reload");
+  ok(!!navigator.serviceWorker.controller, "Worker controls this page", "reload once more after registration");
+  return rows;
 }
 
 /* ---------------- settings ---------------- */

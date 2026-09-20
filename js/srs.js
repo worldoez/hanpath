@@ -42,5 +42,19 @@ const SRS = {
     const mastered = cards.filter(c => this.isMastered(c)).length;
     return Math.round(100 * mastered / cards.length);
   },
+
+  // smooth per-card progress 0..100 — sqrt scale so early reviews register
+  // (1d ≈ 22%, 4d ≈ 44%, 9d ≈ 65%, 21d = 100% = mastered)
+  progress(card) {
+    if (card.i === 0) return 0;
+    return Math.min(100, Math.round(100 * Math.sqrt(Math.min(1, card.i / this.MASTERED_DAYS))));
+  },
+
+  // average smooth progress across a set of cards
+  avg(cards) {
+    if (!cards.length) return 0;
+    const t = cards.reduce((s, c) => s + this.progress(c), 0);
+    return Math.round(t / cards.length);
+  },
 };
 if (typeof module !== "undefined") module.exports = SRS;
