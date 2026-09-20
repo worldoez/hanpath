@@ -126,7 +126,9 @@ function kWords(words) {
 
 async function hskMastery(l, k) {
   const words = await loadLevel(l);
-  const cards = words.map(w => cardOf({ _k: k, id: w.id })).filter(c => !store.hidden[k + ":" + w.id]);
+  const cards = words
+    .filter(w => !store.hidden[k + ":" + w.id])
+    .map(w => cardOf({ _k: k, id: w.id }));
   return SRS.pct(cards);
 }
 async function tierMastery(t) {
@@ -196,7 +198,7 @@ async function renderHome() {
   if (L === "yue") await loadJyut();
 
   const histToday = store.hist[todayKey()] || { r: 0, c: 0, n: 0 };
-  const newAllow = Math.max(0, store.settings.dailyNew - histToday.n);
+  let newAllow = Math.max(0, store.settings.dailyNew - histToday.n);
   const dueCounts = { due: 0, new: 0 };
   const k = L === "yue" ? "y" : "z";
   const countDue = (words, kind) => {
@@ -1032,7 +1034,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-quit]")) { session = null; back(); }
 });
 
-function goHome() { nav = ["home"]; renderHome(); }
+function goHome() { nav = ["home"]; render("home"); }
 async function render(view) {
   try {
     if (view === "home") await renderHome();
