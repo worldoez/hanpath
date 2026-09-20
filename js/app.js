@@ -173,7 +173,7 @@ function editBtn(w) {
 }
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-speak]");
-  if (b) { e.stopPropagation(); TTS.speak(b.dataset.speak, store.settings.rate, lang()); }
+  if (b) { e.stopPropagation(); TTS.speak(b.dataset.speak, store.settings.rate, b.dataset.speakLang || lang()); }
 });
 
 /* ---------------- navigation ---------------- */
@@ -899,6 +899,177 @@ async function renderHidden() {
   });
 }
 
+/* ---------------- intro (first run) ---------------- */
+let introStep = 0;
+function renderIntro() {
+  const L = lang();
+  const steps = [
+    {
+      emoji: "👋", title: "Welcome to Hanpath",
+      html: `<p class="intro-p">Flashcards for <b>普通话 Mandarin</b> and <b>廣東話 Cantonese</b> — one app, two languages, switchable any time with the 中/粵 button.</p>
+        <ul class="intro-list">
+          <li>Study a little every day — new cards are capped daily, hard cards come back sooner, easy ones wait longer</li>
+          <li>Reach <b>${SRS.UNLOCK_PCT}% mastery</b> on a level to unlock the next</li>
+          <li>Everything stays on your device — export backups in Settings</li>
+        </ul>`,
+    },
+    {
+      emoji: "🗣️", title: "Tones carry meaning",
+      html: `<p class="intro-p">The same syllable means different things depending on the tone. Tap to hear — same sound, four meanings:</p>
+        <div class="tones">${[["妈", "mā", 1], ["麻", "má", 2], ["马", "mǎ", 3], ["骂", "mà", 4]].map(([h, p, t]) => `
+          <div class="tone"><span class="hz">${h}</span><span class="py">${p}</span><span class="tn">tone ${t}</span>${speakBtn(h)}</div>`).join("")}</div>
+        <p class="intro-p" style="margin-top:12px">There's a full crash course for both — pinyin and jyutping — one tap away:</p>`,
+      extra: `<div class="row"><button class="btn primary" data-go="learn">Crash course →</button></div>`,
+    },
+    {
+      emoji: "📲", title: "Put it on your phone",
+      html: `<p class="intro-p">Hanpath installs like a real app — home-screen icon, full screen, works offline.</p>
+        <ul class="intro-list">
+          <li><b>iPhone:</b> open in <b>Safari</b> → Share □↑ → Add to Home Screen</li>
+          <li><b>Android:</b> Chrome → ⋮ → Install app</li>
+          <li><b>Mac/PC:</b> the install icon in Chrome's address bar</li>
+        </ul>
+        <p class="faint" style="margin-top:10px">Full walkthrough lives in Settings → “Install on your phone”.</p>`,
+    },
+    {
+      emoji: "🎯", title: "Ready?",
+      html: `<p class="intro-p">Start small. ${L === "yue" ? "廣東話 Basics is open now." : "HSK 1 is open now."} Ten minutes a day beats a weekend binge — that's what the streak is for. 加油!</p>`,
+      final: true,
+    },
+  ];
+  const s = steps[Math.min(introStep, steps.length - 1)];
+  app.innerHTML = `
+    <div class="topbar"><span style="width:38px"></span><h1></h1>
+      <button class="btn ghost" id="skipp" style="padding:8px 14px;font-size:14px">Skip</button></div>
+    <div class="quiz-card intro">
+      <div style="font-size:44px">${s.emoji}</div>
+      <h2 class="intro-title">${s.title}</h2>
+      ${s.html}
+      ${s.extra || ""}
+    </div>
+    <div class="intro-foot">
+      <button class="btn ghost" id="iprev" style="visibility:${introStep ? "visible" : "hidden"}">‹ Back</button>
+      <div class="dots">${steps.map((_, i) => `<i class="${i === introStep ? "on" : ""}"></i>`).join("")}</div>
+      <button class="btn primary" id="inext">${s.final ? "Start studying →" : "Next ›"}</button>
+    </div>`;
+  document.getElementById("inext").onclick = () => {
+    if (introStep >= steps.length - 1) { finishIntro(); return; }
+    introStep++;
+    renderIntro();
+  };
+  document.getElementById("iprev").onclick = () => { if (introStep > 0) { introStep--; renderIntro(); } };
+  document.getElementById("skipp").onclick = finishIntro;
+}
+function finishIntro() {
+  store.settings.seen = 1;
+  save();
+  introStep = 0;
+  goHome();
+}
+
+/* ---------------- pronunciation crash course ---------------- */
+let learnTab = null;   // "zh" | "yue" — null = follow current language
+function toneRow(label, hanzi, rom, tone, lang, sub) {
+  return `<div class="tone"><span class="hz">${hanzi}</span><span class="py">${rom}</span>
+    <span class="tn">${tone}${sub ? " · " + sub : ""}</span>
+    <button class="speak" data-speak="${esc(hanzi)}" data-speak-lang="${lang}" aria-label="speak">🔊</button></div>`;
+}
+async function renderLearn() {
+  if (!learnTab) learnTab = lang();
+  const pinyin = [
+    ["妈", "mā", 1], ["麻", "má", 2], ["马", "mǎ", 3], ["骂", "mà", 4],
+  ];
+  const jyut = [["詩", "si1", 1], ["史", "si2", 2], ["試", "si3", 3], ["時", "si4", 4], ["市", "si5", 5], ["是", "si6", 6]];
+  app.innerHTML = `
+    ${topbar("Pronunciation")}
+    <div class="tabs">
+      <button class="tab ${learnTab === "zh" ? "on" : ""}" data-tab="zh">Pinyin · 普通话</button>
+      <button class="tab ${learnTab === "yue" ? "on" : ""}" data-tab="yue">Jyutping · 廣東話</button>
+    </div>
+    ${learnTab === "zh" ? `
+    <div class="card"><div class="section-title" style="margin-top:0">The four tones</div>
+      <p class="muted">Pinyin writes sounds in Latin letters; a mark over the vowel shows the tone. The tones below are the classic demo — one syllable, four words:</p>
+      <div class="tones">${pinyin.map(([h, r, t]) => toneRow("", h, r, t, "zh")).join("")}</div>
+      <p class="faint" style="margin-top:8px">A 5th “neutral tone” (轻声, no mark) appears in unstressed syllables — like the second 爸 in 爸爸 bà ba.</p>
+    </div>
+    <div class="card"><div class="section-title" style="margin-top:0">Letters that don't sound like English</div>
+      <div class="set-row"><label><b>c</b> = “ts”</label><span class="muted">cài 菜 = ts-eye</span></div>
+      <div class="set-row"><label><b>q</b></label><span class="muted">like “ch” in cheese, tongue forward</span></div>
+      <div class="set-row"><label><b>x</b></label><span class="muted">like “sh”, tongue forward</span></div>
+      <div class="set-row"><label><b>zh / ch / sh</b></label><span class="muted">retroflex — tongue curled back</span></div>
+      <div class="set-row"><label><b>r</b></label><span class="muted">like “r” in “azure”</span></div>
+      <div class="set-row"><label><b>ü</b></label><span class="muted">say “ee” with rounded lips</span></div>
+      <div class="set-row"><label><b>-ang / -eng</b></label><span class="muted">“ah” + ng, “uh” + ng</span></div>
+    </div>
+    <div class="card"><div class="section-title" style="margin-top:0">Try real words</div>
+      ${[["你好", "nǐ hǎo", "hello"], ["谢谢", "xièxie", "thanks"], ["再见", "zàijiàn", "goodbye"], ["我爱学习", "wǒ ài xuéxí", "I love studying"]].map(([h, r, e]) => `
+        <div class="word"><span class="hz">${h}</span>${speakBtn(h)}<span class="py">${r}</span><span class="en">${e}</span></div>`).join("")}
+    </div>` : `
+    <div class="card"><div class="section-title" style="margin-top:0">The six tones</div>
+      <p class="muted">Jyutping writes tones as numbers 1–6 after the syllable. The classic demo — same syllable, six words:</p>
+      <div class="tones">${jyut.map(([h, r, t]) => toneRow("", h, r, t, "yue")).join("")}</div>
+      <p class="faint" style="margin-top:8px">Tones 1, 2, 4, 5, 6 are the distinct ones; 3 (mid level) is often heard as a variant. Don't stress — you'll absorb them by listening.</p>
+    </div>
+    <div class="card"><div class="section-title" style="margin-top:0">Reading jyutping</div>
+      <div class="set-row"><label><b>j</b> = English “y”</label><span class="muted">jau5 有 = “yauh”</span></div>
+      <div class="set-row"><label><b>c</b> = “ch”</label><span class="muted">caa4 茶 = “chah”</span></div>
+      <div class="set-row"><label><b>z</b> = “ts”/“dz”</label><span class="muted">zou2 早 = “joh” with a t</span></div>
+      <div class="set-row"><label><b>oe / eo</b></label><span class="muted">like French “eu” / “oe”</span></div>
+      <div class="set-row"><label><b>aa vs a</b></label><span class="muted">aa is long (“ah”), a is short</span></div>
+      <div class="set-row"><label><b>no ü</b></label><span class="muted">unlike pinyin — easier!</span></div>
+    </div>
+    <div class="card"><div class="section-title" style="margin-top:0">Try real phrases</div>
+      ${[["早晨", "zou2 san4", "good morning"], ["唔該", "m4 goi1", "please / thanks (a favour)"], ["多謝", "do1 ze6", "thanks (a gift)"], ["係咁先", "hai6 gam2 sin1", "that's it for now"]].map(([h, r, e]) => `
+        <div class="word"><span class="hz">${h}</span><button class="speak" data-speak="${esc(h)}" data-speak-lang="yue" aria-label="speak">🔊</button><span class="py">${r}</span><span class="en">${e}</span></div>`).join("")}
+    </div>`}
+    <div class="row"><button class="btn" data-go="home">Done</button></div>`;
+  app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { learnTab = b.dataset.tab; renderLearn(); });
+}
+
+/* ---------------- install guide ---------------- */
+let guideTab = null;   // "ios" | "android" | "desktop"
+function renderGuide() {
+  if (!guideTab) guideTab = "ios";
+  const iOS = `
+    <ol class="guide-steps">
+      <li>Open this site in <b>Safari</b> (not Chrome — Apple only lets Safari install apps)</li>
+      <li>Tap the <b>Share</b> button <span class="glyphchip">□↑</span> at the bottom</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b></li>
+      <li>Tap <b>Add</b> — you'll get the Hanpath icon on your home screen</li>
+      <li>Open it from the home screen: it runs full-screen, with no browser bars, and keeps working with no signal</li>
+    </ol>
+    <p class="faint">⚠️ iOS can purge website storage after weeks of not opening an app — use Settings → Export backup now and then.</p>`;
+  const android = `
+    <ol class="guide-steps">
+      <li>Open this site in <b>Chrome</b></li>
+      <li>Tap the <b>⋮ menu</b> → <b>Add to Home screen</b> / <b>Install app</b></li>
+      <li>Confirm — done. Or look for the install banner Chrome shows by itself</li>
+    </ol>`;
+  const desktop = `
+    <ol class="guide-steps">
+      <li>Open this site in <b>Chrome</b> or <b>Edge</b></li>
+      <li>Click the <b>install icon ⊕</b> at the right end of the address bar (or ⋮ → Install Hanpath)</li>
+      <li>The app opens in its own window, like a native app</li>
+    </ol>`;
+  app.innerHTML = `
+    ${topbar("Install on your phone")}
+    <div class="card">
+      <div class="tabs">
+        <button class="tab ${guideTab === "ios" ? "on" : ""}" data-gt="ios"> iPhone</button>
+        <button class="tab ${guideTab === "android" ? "on" : ""}" data-gt="android"> Android</button>
+        <button class="tab ${guideTab === "desktop" ? "on" : ""}" data-gt="desktop">Computer</button>
+      </div>
+      ${guideTab === "ios" ? iOS : guideTab === "android" ? android : desktop}
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Why this works</div>
+      <p class="muted">Hanpath is a <b>PWA</b> (progressive web app): the site plus a tiny bit of glue — a manifest and a service worker — lets your browser install it like an app, cache everything, and run it offline. Nothing from the App Store, nothing to download twice.</p>
+      ${location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1" ? (location.protocol === "https:" ? "" : '<p class="faint" style="margin-top:8px">⚠️ You\'re on localhost — this server is this computer only. To install on a phone, deploy to GitHub Pages first (see DEPLOY.md).</p>') : '<p class="faint" style="margin-top:8px">⚠️ This page isn\'t served over https, so browsers will refuse to install it. Deploy to GitHub Pages first.</p>'}
+    </div>
+    <div class="row"><button class="btn" data-go="home">Done</button></div>`;
+  app.querySelectorAll("[data-gt]").forEach(b => b.onclick = () => { guideTab = b.dataset.gt; renderGuide(); });
+}
+
 /* ---------------- settings ---------------- */
 function renderSettings() {
   const s = store.settings;
@@ -922,6 +1093,16 @@ function renderSettings() {
         <select id="rate"><option value="0.6" ${s.rate == 0.6 ? "selected" : ""}>Slow</option><option value="0.9" ${s.rate == 0.9 ? "selected" : ""}>Normal</option><option value="1.2" ${s.rate == 1.2 ? "selected" : ""}>Fast</option></select></div>
       <div class="set-row"><label>Theme</label>
         <select id="theme"><option value="auto" ${s.theme === "auto" ? "selected" : ""}>Auto</option><option value="light" ${s.theme === "light" ? "selected" : ""}>Light</option><option value="dark" ${s.theme === "dark" ? "selected" : ""}>Dark</option></select></div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0">Learn</div>
+      <div class="row">
+        <button class="btn" id="learnbtn">🗣️ Pronunciation crash course</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="guidebtn">📲 Install on your phone</button>
+        <button class="btn" id="introbtn">👋 Replay intro</button>
+      </div>
     </div>
     <div class="card">
       <div class="section-title" style="margin-top:0">Cards <span class="muted" style="text-transform:none">— hidden & edited words</span></div>
@@ -953,6 +1134,9 @@ function renderSettings() {
   bind("rate", "rate", v => +v);
   bind("theme", "theme");
   document.getElementById("hiddenbtn").onclick = () => go("hidden");
+  document.getElementById("learnbtn").onclick = () => go("learn");
+  document.getElementById("guidebtn").onclick = () => go("guide");
+  document.getElementById("introbtn").onclick = () => { introStep = 0; go("intro"); };
   document.getElementById("export").onclick = () => {
     const blob = new Blob([JSON.stringify(store)], { type: "application/json" });
     const a = document.createElement("a");
@@ -1012,6 +1196,8 @@ document.addEventListener("click", e => {
     else if (v === "search") go("search");
     else if (v === "stats") go("stats");
     else if (v === "settings") go("settings");
+    else if (v === "learn") go("learn");
+    else if (v === "guide") go("guide");
     else if (v.startsWith("quiz:")) { const [, kind, target] = v.split(":"); startQuiz(kind, target); }
     return;
   }
@@ -1048,6 +1234,9 @@ async function render(view) {
     else if (view === "stats") await renderStats();
     else if (view === "search") renderSearch();
     else if (view === "settings") renderSettings();
+    else if (view === "learn") renderLearn();
+    else if (view === "guide") renderGuide();
+    else if (view === "intro") renderIntro();
   } catch (err) {
     app.innerHTML = `<div class="empty"><div class="big">😵</div>Something broke: ${esc(err.message || err)}</div>`;
     console.error(err);
@@ -1059,4 +1248,5 @@ window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); window
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
-goHome();
+if (store.settings.seen) goHome();
+else { nav = ["intro"]; renderIntro(); }

@@ -296,6 +296,40 @@ select, input[type="number"] {
 .histrow .g-2 { color: var(--green); font-weight: 700; }
 .histrow .g-3 { color: var(--green); font-weight: 700; }
 
+/* ---- intro / learn / guide ---- */
+.intro-title { font-size: 22px; font-weight: 800; margin: 10px 0 12px; letter-spacing: -.02em; }
+.intro-p { font-size: 15px; color: var(--ink-soft); text-align: left; }
+.intro-p b, .intro-list b { color: var(--ink); }
+.intro-list { text-align: left; margin: 10px 0 0 18px; font-size: 15px; color: var(--ink-soft); display: grid; gap: 6px; }
+.quiz-card.intro { cursor: default; min-height: 320px; justify-content: flex-start; padding-top: 30px; }
+.intro-foot { display: flex; align-items: center; gap: 10px; }
+.intro-foot .btn { flex: 1; }
+.dots { display: flex; gap: 6px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--accent); }
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab {
+  flex: 1; padding: 10px 8px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: transparent; color: var(--ink-soft); font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tones { display: grid; gap: 8px; margin-top: 12px; }
+.tone {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border-radius: 12px; padding: 10px 14px;
+}
+.tone .hz { font-size: 24px; font-weight: 700; }
+.tone .py { color: var(--accent); font-weight: 600; }
+.tone .tn { font-size: 12px; color: var(--ink-faint); flex: 1; }
+.tone .speak { width: 36px; height: 36px; font-size: 16px; }
+.guide-steps { margin-left: 20px; display: grid; gap: 10px; font-size: 15px; color: var(--ink-soft); }
+.guide-steps b { color: var(--ink); }
+.glyphchip {
+  display: inline-block; background: var(--surface-2); border-radius: 6px;
+  padding: 1px 7px; font-weight: 700;
+}
+
 /* toast */
 #toast {
   position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
