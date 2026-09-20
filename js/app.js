@@ -535,7 +535,7 @@ function weakestSort(a, b) {
   const ca = cardOf(a.w), cb = cardOf(b.w);
   return (cb.lp - ca.lp) || (ca.i - cb.i) || (ca.e - cb.e);
 }
-async function startQuiz(kind, target) {
+async function startQuiz(kind, target, ignoreCap = false) {
   // target: "<n>" = HSK level, "t<n>" = Cantonese tier, "D<key>" = domain,
   // "c<deckId>" = custom deck, "review" = everything unlocked in this language
   let pool = [], label, srcPool = [];
@@ -573,7 +573,7 @@ async function startQuiz(kind, target) {
   pool = srcPool;
 
   const histToday = store.hist[todayKey()] || { r: 0, c: 0, n: 0 };
-  let newAllow = Math.max(0, store.settings.dailyNew - histToday.n);
+  let newAllow = ignoreCap ? Infinity : Math.max(0, store.settings.dailyNew - histToday.n);
   const due = [], fresh = [];
   for (const w of pool) {
     const c = cardOf(w);
@@ -589,9 +589,23 @@ async function startQuiz(kind, target) {
     picks.push(f); newAllow--;
   }
   if (!picks.length) {
-    toast(histToday.n >= store.settings.dailyNew
-      ? "Daily new-card limit reached — review due cards tomorrow 🌙"
-      : "Nothing due here right now 🌙");
+    if (newAllow <= 0 && fresh.length) {
+      // only the daily cap is stopping us — offer to continue
+      app.innerHTML = `
+        ${topbar(label)}
+        <div class="empty">
+          <div class="big">🌙</div>
+          <p><b>New-card limit reached</b> — ${histToday.n} new cards today (cap: ${store.settings.dailyNew}).</p>
+          <p class="muted" style="margin-top:8px;max-width:300px;margin-left:auto;margin-right:auto">The cap keeps tomorrow's review pile manageable, but nothing stops you from continuing right now.</p>
+          <div class="row" style="margin-top:18px">
+            <button class="btn primary" id="keepgoing">Keep studying anyway</button>
+            <button class="btn" data-go="home">Enough for today</button>
+          </div>
+        </div>`;
+      document.getElementById("keepgoing").onclick = () => startQuiz(kind, target, true);
+      return;
+    }
+    toast("Nothing due here right now 🌙");
     return;
   }
   session = { kind, picks, i: 0, right: 0, wrong: 0, label, lastTarget: target, srcPool: pool };
@@ -623,8 +637,9 @@ async function renderQuiz() {
       <div class="en" id="en" style="display:none">${esc(e.e.join("; "))}</div>
       <div style="margin-top:14px;display:none" id="speakwrap">${speakBtn(e.h)}</div>
     </div>
+    <div class="grade-hint" id="gradehint" style="visibility:hidden">How well did you know it? This sets when you'll see it again.</div>
     <div class="grades" id="grades" style="visibility:hidden">
-      <button class="btn g-again" data-grade="0">Again<small>10 min</small></button>
+      <button class="btn g-again" data-grade="0">Forgot<small>10 min</small></button>
       <button class="btn g-hard" data-grade="1">Hard<small>${nextIv(card, 1)}</small></button>
       <button class="btn g-good" data-grade="2">Good<small>${nextIv(card, 2)}</small></button>
       <button class="btn g-easy" data-grade="3">Easy<small>${nextIv(card, 3)}</small></button>
@@ -649,6 +664,7 @@ async function renderQuiz() {
       document.getElementById("speakwrap").style.display = "";
       document.getElementById("hint").style.display = "none";
       document.getElementById("grades").style.visibility = "visible";
+      document.getElementById("gradehint").style.visibility = "visible";
       if (hanziFront) TTS.speak(e.h, store.settings.rate, lang());
     };
     document.getElementById("grades").onclick = ev => {
@@ -723,7 +739,7 @@ async function renderEdit() {
   const key = cardKey(w);
   const card = cardOf(w);
   const isCustom = w._k.startsWith("c");
-  const grades = ["again", "hard", "good", "easy"];
+  const grades = ["forgot", "hard", "good", "easy"];
   const histHtml = (card.h || []).slice().reverse().map(hh => {
     const d = new Date(hh.t);
     return `<div class="histrow"><span>${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}</span><span class="g-${hh.g}">${grades[hh.g]}</span></div>`;
@@ -911,7 +927,7 @@ function renderHelp() {
     <div class="card">
       <div class="section-title" style="margin-top:0">The loop</div>
       <ul class="help-list">
-        <li><b>Study</b> a deck — tap the card to flip, then grade yourself: <b>Again</b> brings it back in 10 minutes, <b>Good</b> schedules it days ahead, <b>Easy</b> even further</li>
+        <li><b>Study</b> a deck — tap the card to flip, then grade yourself: <b>Forgot</b> brings it back in 10 minutes, <b>Good</b> schedules it days ahead, <b>Easy</b> even further</li>
         <li>New cards are capped daily (${store.settings.dailyNew} by default — Settings), so reviews stay manageable</li>
         <li>Reach <b>${SRS.UNLOCK_PCT}% mastery</b> on a level and the next one opens</li>
         <li>Keep a <b>streak</b> 🔥 — a little every day is how spaced repetition works</li>

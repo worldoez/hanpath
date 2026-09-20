@@ -12,7 +12,7 @@ No build step, no framework, no backend.
 - **Two languages, one app** — 中/粵 toggle on the home bar. Mandarin mode:
   pinyin + `zh-CN` voice. Cantonese mode: jyutping + `zh-HK` voice. Progress
   is tracked separately per language.
-- **Spaced repetition (SRS)** — simplified SM-2: Again / Hard / Good / Easy
+- **Spaced repetition (SRS)** — simplified SM-2: Forgot / Hard / Good / Easy
   grading, intervals from 10 minutes up to a year, mastery = interval ≥ 21 days.
 - **HSK path** — the next level opens at 65% mastery of the previous one.
 - **Spoken Cantonese** — three frequency-ranked tiers (Basics / Everyday /
