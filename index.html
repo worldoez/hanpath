@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hanpath — Mandarin Flashcards</title>
+<title>Hanpath — Mandarin &amp; Cantonese Flashcards</title>
 <meta name="description" content="Learn Mandarin and Cantonese with spaced repetition: 5,000 HSK words, spoken Cantonese, 16 domain packs, browser audio, works offline.">
 <meta name="theme-color" content="#b3402a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,5 +19,12 @@
 <script src="js/srs.js"></script>
 <script src="js/tts.js"></script>
 <script src="js/app.js"></script>
+<script>
+/* Service worker: offline cache + PWA installability (required by Chrome).
+   Registers only on https or localhost — file:// won't work. */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.error));
+}
+</script>
 </body>
 </html>
