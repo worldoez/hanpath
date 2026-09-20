@@ -1,10 +1,14 @@
 /* Hanpath service worker — offline cache. Bump CACHE_VERSION when you change files. */
 "use strict";
-const CACHE_VERSION = "hanpath-v1";
+const CACHE_VERSION = "hanpath-v2";
 const CORE = [
   "./", "./index.html", "./css/styles.css",
   "./js/app.js", "./js/srs.js", "./js/tts.js",
   "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",
+  "./data/hsk1.json", "./data/hsk2.json", "./data/hsk3.json",
+  "./data/hsk4.json", "./data/hsk5.json", "./data/hsk6.json",
+  "./data/domains.json", "./data/jyutping.json",
+  "./data/yue1.json", "./data/yue2.json", "./data/yue3.json",
 ];
 
 self.addEventListener("install", e => {

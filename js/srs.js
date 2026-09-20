@@ -22,6 +22,7 @@ const SRS = {
       c.i = Math.min(c.i, 365);
       c.d = Date.now() + c.i * this.DAY;
     }
+    c.h = (c.h || []).concat([{ t: Date.now(), g }]).slice(-20);  // per-card history, last 20
     return c;
   },
 

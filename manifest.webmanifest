@@ -1,7 +1,7 @@
 {
   "name": "Hanpath — Mandarin Flashcards",
   "short_name": "Hanpath",
-  "description": "Learn Mandarin with spaced repetition: 5,000 HSK words, 16 domain packs, audio, offline.",
+  "description": "Learn Mandarin and Cantonese with spaced repetition: 5,000 HSK words, spoken Cantonese, domain packs, audio, offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -2,17 +2,26 @@
 
 Static PWA, vanilla JS, **no build step, no dependencies, no backend**. Three
 plain `<script>` tags in `index.html` (srs.js → tts.js → app.js). Data is
-pre-generated JSON in `data/`, fetched lazily per level.
+pre-generated JSON in `data/`, fetched lazily.
 
 ## Conventions
 
-- Word objects: `{id, h: hanzi, p: pinyin, e: [english up to 3], l: level 1-6,
-  d: domain key or null}`. Keep keys short — the JSON is fetched on phones.
-- Progress state shape is versioned via the `KEY` constant (`hanpath.v1`) in
-  `js/app.js`. Bump the version and add a migration if the shape changes
-  incompatibly; backups import by merging (never overwrite stronger cards).
-- `js/srs.js` is pure (no DOM) and also used by `scripts/` tests via
-  `module.exports` — keep it framework-free.
+- Word objects: `{id, h: hanzi, p: romanization, e: [english up to 3], l:
+  level/tier, d: domain key or null}` plus a runtime `_k` kind. Keep keys
+  short — the JSON is fetched on phones.
+- **Card keys encode source AND language**: `z:<id>` = HSK word in Mandarin
+  mode, `y:<id>` = the same HSK word in Cantonese mode (jyutping from
+  `data/jyutping.json`), `s:<id>` = spoken-Cantonese deck, `c<deckId>:<cid>` =
+  custom deck card. The kind prefix MUST be assigned per active language
+  (`kWords()` in app.js) — progress for one language never touches the other.
+  Never mix: spoken-deck ids and HSK ids are both plain integers, so the
+  distinct "s" vs "y" prefixes are what prevents collisions.
+- State shape is versioned via `KEY` (`hanpath.v2`). `migrateState()` upgrades
+  v1 (bare numeric card ids → `z:<id>`) and fills new fields. Backup import
+  goes through the same path — keep it that way when the shape changes.
+- Per-card overrides live in `store.cards[key].o = {h,p,e}`; per-card review
+  history in `card.h = [{t, g}]` capped at 20 (appended in `SRS.grade`).
+- `js/srs.js` is pure (no DOM) — keep it framework-free.
 - Escaping: all user/data strings rendered into HTML go through `esc()`.
 
 ## Things that break silently if forgotten
@@ -21,12 +30,14 @@ pre-generated JSON in `data/`, fetched lazily per level.
   stale files otherwise.
 - The SW only registers on `https:` or `localhost`; `file://` won't cache or
   install as a PWA.
-- iOS: `apple-mobile-web-app-*` meta tags in `index.html` are what make
-  "Add to Home Screen" full-screen; Safari ignores `display: standalone`
-  from the manifest alone. Don't remove them.
-- `data/*.json` are generated — edit `scripts/build_data.py` and re-run, never
-  hand-edit the JSON (OneDrive sync can also leave 0-byte files if interrupted;
-  re-run the script to regenerate).
+- iOS: `apple-mobile-web-app-*` meta tags in `index.html` make "Add to Home
+  Screen" full-screen. Don't remove them.
+- `data/*.json` are generated — edit `scripts/build_data.py` /
+  `scripts/build_cantonese.py` and re-run, never hand-edit the JSON (OneDrive
+  sync can also leave 0-byte files if interrupted; re-run to regenerate).
+- `scripts/build_cantonese.py` needs the words.hk files in /tmp (see README)
+  and opencc-python-reimplemented. words.hk data is traditional Chinese —
+  that's why the s2t conversion is required before lookup.
 
 ## Testing changes
 

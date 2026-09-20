@@ -247,6 +247,55 @@ select, input[type="number"] {
 .empty { text-align: center; padding: 40px 10px; color: var(--ink-faint); }
 .empty .big { font-size: 40px; margin-bottom: 8px; }
 
+/* ---- language toggle ---- */
+.langtoggle {
+  border: none; background: var(--accent); color: #fff;
+  width: 38px; height: 38px; border-radius: 12px;
+  font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: var(--shadow);
+  font-family: inherit;
+}
+
+/* ---- word rows: edit & extra controls ---- */
+.editw {
+  border: none; background: transparent; color: var(--ink-faint);
+  font-size: 15px; cursor: pointer; flex: none; padding: 4px 2px;
+}
+.editw:hover { color: var(--accent); }
+.weaktoggle {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+}
+.weaktoggle input { accent-color: var(--accent); }
+
+/* ---- CSV import ---- */
+.csvbox {
+  width: 100%; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink); font-size: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none; resize: vertical;
+}
+.csvbox:focus { border-color: var(--accent); }
+
+/* ---- stats ranges ---- */
+.ranges { display: inline-flex; gap: 6px; margin-left: 8px; }
+.range {
+  border: 1.5px solid var(--line); background: transparent; color: var(--ink-soft);
+  border-radius: 10px; font-size: 12px; font-weight: 700; padding: 4px 10px; cursor: pointer;
+}
+.range.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---- edit sheet / per-card history ---- */
+.set-row input { flex: 1; max-width: 55%; padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-size: 15px; font-family: inherit; }
+.hist { font-size: 14px; }
+.histrow {
+  display: flex; justify-content: space-between; padding: 7px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.histrow:last-child { border-bottom: none; }
+.histrow .g-0 { color: var(--accent); font-weight: 700; }
+.histrow .g-1 { color: var(--gold); font-weight: 700; }
+.histrow .g-2 { color: var(--green); font-weight: 700; }
+.histrow .g-3 { color: var(--green); font-weight: 700; }
+
 /* toast */
 #toast {
   position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
